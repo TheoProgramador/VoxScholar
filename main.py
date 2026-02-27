@@ -3,7 +3,7 @@ from stt_fw import FasterWhisperSTT
 from llm_groq import GroqChat
 from tts import TTS
 import re
-from Prompts import CHAT_PROMPT, STRICT_PROMPT
+from Prompts import CHAT_PROMPT, STRICT_PROMPT, BEGINNER_DUOLINGO_PROMPT
 from text_clean import clean_for_tts
 from voice_commands import detect_command
 import argparse
@@ -11,10 +11,10 @@ import time
 
 def set_mode(messages: list[dict], mode: str) -> str:
     mode = mode.lower().strip()
-    if mode not in ("chat", "strict"):
-        return "Modes: /chat or /strict"
+    if mode not in ("chat", "strict", "beginner"):
+        return "Modes: /chat, /strict or /beginner"
 
-    prompt = CHAT_PROMPT if mode == "chat" else STRICT_PROMPT
+    prompt = mode_prompt(mode)
 
     # mantém histórico, só troca o system prompt (primeira mensagem)
     if messages and messages[0].get("role") == "system":
@@ -36,8 +36,16 @@ def clean_for_tts(text: str) -> str:
 
     return text
 
+def mode_prompt(mode: str) -> str:
+    if mode == "strict":
+        return STRICT_PROMPT
+    if mode == "beginner":
+        return BEGINNER_DUOLINGO_PROMPT
+    return CHAT_PROMPT
+
+
 def apply_mode(messages: list[dict], mode: str) -> None:
-    prompt = CHAT_PROMPT if mode == "chat" else STRICT_PROMPT
+    prompt = mode_prompt(mode)
     if messages and messages[0].get("role") == "system":
         messages[0]["content"] = prompt
     else:
@@ -62,7 +70,7 @@ def main():
     messages = [{"role": "system", "content": CHAT_PROMPT}]
 
     print("VoiceTrainer pronto.")
-    print('Diga: "switch to strict mode" / "switch to chat mode" / "reset context" / "quit"\n')
+    print('Diga: "switch to strict mode" / "switch to chat mode" / "switch to beginner mode" / "reset context" / "quit"\n')
 
     try:
         while tts.is_speaking:
@@ -90,22 +98,27 @@ def main():
             if args.mode == "ChatMode" and passed == False:
                 apply_mode(messages, "chat")
                 passed = True
-                messages = [{"role": "system", "content": CHAT_PROMPT }]
+                messages = [{"role": "system", "content": mode_prompt("chat") }]
                 #spoken = "Chat mode enabled." if mode == "chat" else "Strict mode enabled."
                 #tts.speak(spoken)
                 print("Chat Mode Enbled\n")
                 continue
 
             if cmd == "reset":
-                messages = [{"role": "system", "content": CHAT_PROMPT if mode == "chat" else STRICT_PROMPT}]
+                messages = [{"role": "system", "content": mode_prompt(mode)}]
                 tts.speak_async("Context reset.")
                 print("Context reset.\n")
                 continue
 
-            if cmd in ("chat", "strict"):
+            if cmd in ("chat", "strict", "beginner"):
                 mode = cmd
                 apply_mode(messages, mode)
-                spoken = "Chat mode enabled." if mode == "chat" else "Strict mode enabled."
+                spoken_map = {
+                    "chat": "Chat mode enabled.",
+                    "strict": "Strict mode enabled.",
+                    "beginner": "Beginner teacher mode enabled.",
+                }
+                spoken = spoken_map[mode]
                 tts.speak_async(spoken)
                 print(spoken + "\n")
                 continue

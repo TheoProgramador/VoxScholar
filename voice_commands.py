@@ -20,6 +20,16 @@ STRICT_PATTERNS = [
     r"\b(enable strict)\b",
 ]
 
+
+BEGINNER_PATTERNS = [
+    r"\b(beginner mode)\b",
+    r"\b(duolingo mode)\b",
+    r"\b(english for beginners)\b",
+    r"\b(beginner english teacher)\b",
+    r"\b(switch to beginner)\b",
+    r"\b(enable beginner mode)\b",
+]
+
 RESET_PATTERNS = [
     r"\b(reset context)\b",
     r"\b(reset conversation)\b",
@@ -36,7 +46,7 @@ QUIT_PATTERNS = [
 
 def detect_command(text: str) -> str | None:
     """
-    Retorna: "chat" | "strict" | "reset" | "quit" | None
+    Retorna: "chat" | "strict" | "beginner" | "reset" | "quit" | None
     """
     t = text.lower().strip()
     t = re.sub(r"\s+", " ", t)
@@ -52,4 +62,6 @@ def detect_command(text: str) -> str | None:
         return "strict"
     if matches(CHAT_PATTERNS):
         return "chat"
+    if matches(BEGINNER_PATTERNS):
+        return "beginner"
     return None
